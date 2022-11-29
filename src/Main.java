@@ -108,15 +108,27 @@ public class Main {
         HTTP_CERT("cert", "server.crt", "HTTP server certificate file name");
 
         private String name;
-        private String argument;
+        private String defaultArgument;
         private String explaination;
 
-        HttpArgs(String name, String argument, String explaination) {
+        HttpArgs(String name, String defaultArgument, String explaination) {
             this.name = name;
-            this.argument = argument;
+            this.defaultArgument = defaultArgument;
             this.explaination = explaination;
         }
 
-
+        public String parse(HttpArgs httpArgs, String[] args) {
+            try {
+                String option = "-" + httpArgs.name;
+                for (int i = 0; i < args.length; i++) {
+                    if (option.equals(args[i])) {
+                        return args[i + 1];
+                    }
+                }
+            } catch (IndexOutOfBoundsException exception) {
+                System.out.println(httpArgs.name + " 값을 잘못 입력하셨습니다.");
+            }
+            return httpArgs.defaultArgument;
+        }
     }
 }
