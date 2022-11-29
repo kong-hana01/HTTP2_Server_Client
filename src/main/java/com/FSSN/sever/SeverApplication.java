@@ -1,24 +1,24 @@
 package com.FSSN.sever;
 
-import org.apache.catalina.Context;
 import org.apache.catalina.connector.Connector;
-import org.apache.tomcat.util.descriptor.web.SecurityCollection;
-import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
 
 @SpringBootApplication
 @RestController
 public class SeverApplication {
 
 	public static void main(String[] args) {
+		// Create a server on port 8000
 		SpringApplication.run(SeverApplication.class, args);
 	}
 
@@ -38,10 +38,28 @@ public class SeverApplication {
 	}
 
 	@GetMapping("/")
-	public ResponseEntity<String> echo() {
-		String message = "Hello";
-		System.out.println(message);
-		System.out.println("ResponseEntity.ok() = " + ResponseEntity.ok().body(message));
-		return ResponseEntity.ok().body(message);
+	public ResponseEntity<String> echo(HttpServletRequest request) {
+		// Get request information
+		String remoteProto = request.getProtocol();
+		String remoteAddr = request.getRemoteAddr();
+		int remotePort = request.getRemotePort();
+
+		// Log the request protocol
+		String receivedMessage = String.format("Got connection: %s from %s %d", remoteProto, remoteAddr, remotePort);
+		System.out.println(receivedMessage);
+
+		// Send a message back to the client
+		String sendMessage = "Hello";
+		return ResponseEntity.ok().body(sendMessage);
+	}
+
+	@Component
+	public class PostConstructView {
+
+		// 서버 구동 전 호출할 함수
+		@PostConstruct
+		public void printStartMessage() {
+			System.out.println("Serving on https://0.0.0.0:8000/");
+		}
 	}
 }
