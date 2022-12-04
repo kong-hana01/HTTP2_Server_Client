@@ -1,5 +1,7 @@
 package com.FSSN.server;
 
+import lombok.Data;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.PropertiesFactoryBean;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,9 +17,11 @@ import javax.servlet.http.HttpServletRequest;
 
 @SpringBootApplication
 @RestController
+@Data
 public class server {
 
-	static final int portNumber = 8000;
+	@Value("${server.port}")
+	private String portNumber;
 
 	public static void main(String[] args) {
 		// Create a server on port 8000
@@ -32,7 +36,7 @@ public class server {
 		int remotePort = request.getRemotePort();
 
 		// Log the request protocol
-		String receivedMessage = String.format("Got connection: %s from %s %d", remoteProto, remoteAddr, remotePort);
+		String receivedMessage = String.format("Got connection: %s from %s %s", remoteProto, remoteAddr, remotePort);
 		System.out.println(receivedMessage);
 
 		// Send a message back to the client
@@ -46,21 +50,9 @@ public class server {
 		// 서버 구동 전 호출할 함수
 		@PostConstruct
 		public void printStartMessage() {
-			String startMessage = String.format("Serving on https://localhost: %d/", portNumber);
+			String startMessage = String.format("Serving on https://localhost: %s/", portNumber);
 			System.out.println(startMessage);
 		}
 	}
 
-	@Configuration
-	public class PropertyConfig {
-
-		@Bean(name = "system")
-		public PropertiesFactoryBean propertiesFactoryBean() throws Exception {
-			PropertiesFactoryBean propertiesFactoryBean = new PropertiesFactoryBean();
-			ClassPathResource classPathResource = new ClassPathResource("main/resources/application.properties");
-
-			propertiesFactoryBean.setLocation(classPathResource);
-			return propertiesFactoryBean;
-		}
-	}
 }
