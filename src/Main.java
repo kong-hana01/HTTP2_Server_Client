@@ -16,40 +16,40 @@ import java.security.cert.X509Certificate;
 public class Main {
     public static void main(String[] args) throws Exception {
         // Parse command line parameters
-        // HttpVersion, addr, port, cert?
-        String httpVersion = "";
-        String httpAddr = "";
-        String httpPort = "";
-        String httpCert = "";
+        // Configure a parsed parameters and a http server url
+        String httpVersion = HttpArgs.parse(HttpArgs.HTTP_VERSION, args);
+        String httpAddr = HttpArgs.parse(HttpArgs.HTTP_ADDR, args);
+        String httpPort = HttpArgs.parse(HttpArgs.HTTP_PORT, args);
+        String httpCert = HttpArgs.parse(HttpArgs.HTTP_CERT, args);
+        URI url = new URI("https://" + httpAddr + ":" + httpPort);
 
-        URI url = new URI("https://" + httpAddr + ":" + 443);
 
-        SSLContext context = SSLContext.getInstance("SSL");
+        // Create a pool with the server certificate since it is not signed by a known CA
+        SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, new TrustManager[] { new X509TrustManager() {
 
             @Override
             public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                // client certification check
+                // 클라이언트에 관한 부분으로 건드리지 않아도 됨
             }
 
             @Override
             public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                // Server certification check
+                // Create TLS configuration with the certificate of the server
                 try {
                     CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                    Certificate ca = cf.generateCertificate(new FileInputStream("src/localhost.crt"));
+                    Certificate ca = cf.generateCertificate(new FileInputStream("src/" + httpCert));
 
-                    // Get trust store
+                    // Trust Store
                     KeyStore trustStore = KeyStore.getInstance("PKCS12");
                     trustStore.load(null, null);
                     trustStore.setCertificateEntry("ca", ca);
 
-                    // Get Trust Manager
+                    // Trust Manager
                     TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     tmf.init(trustStore);
                     TrustManager[] tms = tmf.getTrustManagers();
                     ((X509TrustManager)tms[0]).checkServerTrusted(chain, authType);
-
                 } catch (KeyStoreException e) {
                     e.printStackTrace();
                 } catch (NoSuchAlgorithmException e) {
@@ -65,46 +65,72 @@ public class Main {
             }
         } }, null);
 
+
+        // Use the proper transport in the client
+        HttpClient.Version version;
+        if (httpVersion.equals("1")) {
+            String message = String.format("Connect to %s over TLS using HTTP/1.1", url.toString());
+            System.out.println(message);
+            version = HttpClient.Version.HTTP_1_1;
+        } else if (httpVersion.equals("2")){
+            String message = String.format("Connect to %s over TLS using HTTP/2", url.toString());
+            System.out.println(message);
+            version = HttpClient.Version.HTTP_2;
+        } else {
+            String message = "잘못된 HTTP 버전입니다. 1 또는 2를 입력해주세요.";
+            System.out.println(message);
+            throw new IllegalArgumentException("잘못된 HTTP 버전입니다.");
+        }
+
+
+        // Create a http client
         HttpClient client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.ALWAYS)
                 .sslContext(context)
-                .version(HttpClient.Version.HTTP_2)
+                .version(version)
                 .build();
 
-        HttpRequest request = HttpRequest
-                .newBuilder()
-                .uri(new URI("https://localhost:443"))
-                .GET()
-                .build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        System.out.println(response.version());
-        System.out.println("response = " + response.headers());
-        System.out.println("response = " + response.body());
+        // Create a http request
+       HttpRequest request;
+        try {
+            request = HttpRequest
+                    .newBuilder()
+                    .uri(url)
+                    .GET()
+                    .setHeader("http-version", version.toString())
+//                    .setHeader("port", )
+                    .build();
+
+        } catch (Exception exception) {
+            System.out.println("Failed request build: " + url);
+            System.out.println(exception.getMessage());
+            throw new IllegalArgumentException("request 설정에 실패했습니다.");
+        }
+
+        // Perform the request
+        HttpResponse<String> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception exception) {
+            System.out.println("Failed get: " + url);
+            System.out.println(exception.getMessage());
+            throw new IllegalArgumentException("서버에 get 요청을 보내는데 실패했습니다.");
+        }
 
 
-        HttpClient client2 = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.ALWAYS)
-                .sslContext(context)
-                .version(HttpClient.Version.HTTP_1_1)
-                .build();
-
-        HttpRequest request2 = HttpRequest
-                .newBuilder()
-                .uri(new URI("http://localhost:8080"))
-                .GET()
-                .build();
-
-        HttpResponse<String> response2 = client2.send(request2, HttpResponse.BodyHandlers.ofString());
-        System.out.println(response2.version());
-        System.out.println("response = " + response2.headers());
-        System.out.println("response = " + response2.body());
+        int responseStatusCode = response.statusCode();
+        String responseProto = response.version().toString();
+        String responseBody = response.body();
+        String responseMessage = String.format("Got response %d: %s %s", responseStatusCode, responseProto, responseBody);
+        System.out.println(responseMessage);
     }
 
+    // 입력을 위한 enum 클래스
     public enum HttpArgs {
         HTTP_VERSION("version", "2", "HTTP version"),
         HTTP_ADDR("addr", "localhost", "HTTP server address"),
-        HTTP_PORT("port", "8080", "HTTP server port"),
+        HTTP_PORT("port", "8000", "HTTP server port"),
         HTTP_CERT("cert", "server.crt", "HTTP server certificate file name");
 
         private String name;
@@ -117,7 +143,7 @@ public class Main {
             this.explaination = explaination;
         }
 
-        public String parse(HttpArgs httpArgs, String[] args) {
+        public static String parse(HttpArgs httpArgs, String[] args) {
             try {
                 String option = "-" + httpArgs.name;
                 for (int i = 0; i < args.length; i++) {
