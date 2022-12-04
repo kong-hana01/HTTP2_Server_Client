@@ -36,7 +36,7 @@ public class server {
 		int remotePort = request.getRemotePort();
 
 		// Log the request protocol
-		String receivedMessage = String.format("Got connection: %s from %s %s", remoteProto, remoteAddr, remotePort);
+		String receivedMessage = String.format("Got connection: %s from %s %d", remoteProto, remoteAddr, remotePort);
 		System.out.println(receivedMessage);
 
 		// Send a message back to the client
