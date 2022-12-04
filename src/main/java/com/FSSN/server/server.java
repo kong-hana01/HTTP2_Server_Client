@@ -1,7 +1,11 @@
-package com.FSSN.sever;
+package com.FSSN.server;
 
+import org.springframework.beans.factory.config.PropertiesFactoryBean;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +48,19 @@ public class server {
 		public void printStartMessage() {
 			String startMessage = String.format("Serving on https://localhost: %d/", portNumber);
 			System.out.println(startMessage);
+		}
+	}
+
+	@Configuration
+	public class PropertyConfig {
+
+		@Bean(name = "system")
+		public PropertiesFactoryBean propertiesFactoryBean() throws Exception {
+			PropertiesFactoryBean propertiesFactoryBean = new PropertiesFactoryBean();
+			ClassPathResource classPathResource = new ClassPathResource("main/resources/application.properties");
+
+			propertiesFactoryBean.setLocation(classPathResource);
+			return propertiesFactoryBean;
 		}
 	}
 }

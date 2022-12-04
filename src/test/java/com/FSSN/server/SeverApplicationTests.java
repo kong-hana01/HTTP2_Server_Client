@@ -1,4 +1,4 @@
-package com.FSSN.sever;
+package com.FSSN.server;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
