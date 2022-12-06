@@ -2,12 +2,8 @@ package com.FSSN.server;
 
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.PropertiesFactoryBean;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
@@ -50,7 +46,7 @@ public class server {
 		// 서버 구동 전 호출할 함수
 		@PostConstruct
 		public void printStartMessage() {
-			String startMessage = String.format("Serving on https://localhost: %s/", portNumber);
+			String startMessage = String.format("Serving on https://localhost:%s/", portNumber);
 			System.out.println(startMessage);
 		}
 	}
